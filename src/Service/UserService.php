@@ -6,8 +6,9 @@ use App\Entity\User;
 use Symfony\Bundle\SecurityBundle\Security;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Policy\UserResourcePolicy;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use App\Exception\BussinessException;
+use App\Exception\BussinessAccessDeniadException;
 
 class UserService
 {
@@ -35,13 +36,11 @@ class UserService
         $user = $this->entityManager->getRepository(User::class)->find($id);
 
         if (!$user) {
-            throw new \Exception('User not found');
+            throw new BussinessException('User not found');
         }
 
-        if ($this->userResourcePolicy->isTestUser($authUser->getRoles())
-            && $authUser->getId() !== $user->getId()
-        ) {
-            throw new AccessDeniedException('Access denied');
+        if (!$this->userResourcePolicy->authorizeUser($authUser, $user)) {
+            throw new BussinessAccessDeniadException('Access denied');
         }
 
         return $user;
@@ -51,9 +50,9 @@ class UserService
     {
         $authUser = $this->security->getUser();
 
-        if ($this->userResourcePolicy->isTestUser($authUser->getRoles())
+        if (!$this->userResourcePolicy->authorizaAdmin($authUser->getRoles())
         ) {
-            throw new AccessDeniedException('Access denied');
+            throw new BussinessAccessDeniadException('Access denied');
         }
 
         $user = new User();
@@ -63,9 +62,7 @@ class UserService
         $user->setPhone($data['phone']);
         $user->setRoles($data['roles']);
 
-        $errors = $this->validator->validate($user);
-    
-        $this->checkErros($errors);
+        $this->validate($user);
 
         $this->entityManager->persist($user);
         
@@ -80,13 +77,11 @@ class UserService
         $user = $this->entityManager->getRepository(User::class)->find($id);
 
         if (!$user) {
-            throw new \Exception('User not found');
+            throw new BussinessException('User not found');
         }
 
-        if ($this->userResourcePolicy->isTestUser($authUser->getRoles())
-            && $authUser->getId() !== $user->getId()
-        ) {
-            throw new AccessDeniedException('Access denied');
+        if (!$this->userResourcePolicy->authorizeUser($authUser, $user)){
+            throw new BussinessAccessDeniadException('Access denied');
         }
 
         $user->setLogin($data['login']);
@@ -94,9 +89,7 @@ class UserService
         $user->setPhone($data['phone']);
         $user->setRoles($data['roles']);
 
-        $errors = $this->validator->validate($user);
-
-        $this->checkErros($errors);
+        $this->validate($user);
 
         $this->entityManager->persist($user);
         
@@ -109,15 +102,15 @@ class UserService
     {
         $authUser = $this->security->getUser();
 
-        if ($this->userResourcePolicy->isTestUser($authUser->getRoles())
+        if (!$this->userResourcePolicy->authorizaAdmin($authUser->getRoles())
         ) {
-            throw new AccessDeniedException('Access denied');
+            throw new BussinessAccessDeniadException('Access denied');
         }
 
         $user = $this->entityManager->getRepository(User::class)->find($id);
 
         if (!$user) {
-            throw new \Exception('User not found');
+            throw new BussinessException('User not found');
         }
 
         $this->entityManager->remove($user);
@@ -125,14 +118,16 @@ class UserService
         $this->entityManager->flush();
     }
 
-    private function checkErros($errors)
+    private function validate($user)
     {
+        $errors = $this->validator->validate($user);
+
         if (count($errors)) {
             $errorMessages = [];
             foreach ($errors as $error) {
                 $errorMessages[] = $error->getMessage();
             }
-            throw new \Exception(implode( '. ', $errorMessages));
+            throw new BussinessException(implode( '. ', $errorMessages));
         }
     }
 }

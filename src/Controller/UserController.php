@@ -9,12 +9,13 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Exception;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use App\Exception\BussinessException;
+use App\Exception\BussinessAccessDeniadException;
 
 class UserController extends AbstractController
 {
-
     private UserService $userService;
+
     public function __construct(
         UserService $userService
     ) {
@@ -26,13 +27,16 @@ class UserController extends AbstractController
     {
         try {
             $user = $this->userService->getUserDetails($id);
+
             return $this->json($user, JsonResponse::HTTP_OK, [], ['groups' => 'user_read']);
-        } catch (Exception $e) {
-            $statusCode = $e instanceof AccessDeniedException
+        } catch (BussinessException $e) {
+            $statusCode = $e instanceof BussinessAccessDeniadException
             ? JsonResponse::HTTP_FORBIDDEN
             : JsonResponse::HTTP_NOT_FOUND;
 
             return $this->json(['error' => $e->getMessage()], $statusCode);
+        } catch (Exception $e) {
+            return $this->json(['error' => 'Server error'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -50,13 +54,16 @@ class UserController extends AbstractController
             ];
             
             $user = $this->userService->createUser($data);
+
             return $this->json($user, JsonResponse::HTTP_OK, [], ['groups' => 'user_read']);
-        } catch (Exception $e) {
-            $statusCode = $e instanceof AccessDeniedException
+        } catch (BussinessException $e) {
+            $statusCode = $e instanceof BussinessAccessDeniadException
             ? JsonResponse::HTTP_FORBIDDEN
             : JsonResponse::HTTP_BAD_REQUEST;
 
             return $this->json(['error' => $e->getMessage()], $statusCode);
+        } catch (Exception $e) {
+            return $this->json(['error' => 'Server error'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -74,13 +81,16 @@ class UserController extends AbstractController
             ];
 
             $user = $this->userService->editUser($id, $data);
+
             return $this->json($user, JsonResponse::HTTP_OK, [], ['groups' => 'user_read']);
-        } catch (Exception $e) {
-            $statusCode = $e instanceof AccessDeniedException
+        } catch (BussinessException $e) {
+            $statusCode = $e instanceof BussinessAccessDeniadException
             ? JsonResponse::HTTP_FORBIDDEN
             : JsonResponse::HTTP_BAD_REQUEST;
 
             return $this->json(['error' => $e->getMessage()], $statusCode);
+        } catch (Exception $e) {
+            return $this->json(['error' => 'Server error'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -89,13 +99,16 @@ class UserController extends AbstractController
     {
         try {
             $this->userService->deleteUser($id);
+            
             return new Response();
-        } catch (Exception $e) {
-            $statusCode = $e instanceof AccessDeniedException
+        } catch (BussinessException $e) {
+            $statusCode = $e instanceof BussinessAccessDeniadException
             ? JsonResponse::HTTP_FORBIDDEN
             : JsonResponse::HTTP_NOT_FOUND;
 
             return $this->json(['error' => $e->getMessage()], $statusCode);
+        } catch (Exception $e) {
+            return $this->json(['error' => 'Server error'], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }
