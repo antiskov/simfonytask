@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  symfony-mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    ports:
+      - "3306:3306" # Exposing MySQL port to the host
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword # Set the root password
+      MYSQL_DATABASE: exampledb         # Optional: Initialize with a database
+      MYSQL_USER: user                  # Optional: Create a non-root user
+      MYSQL_PASSWORD: userpassword      # Optional: Password for the non-root user
+    volumes:
+      - mysql-data:/var/lib/mysql       # Persistent data storage
+      - ./custom.cnf:/etc/mysql/conf.d/custom.cnf # Optional: Custom MySQL configuration
+
+volumes:
+  mysql-data:
